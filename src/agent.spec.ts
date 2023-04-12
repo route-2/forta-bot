@@ -26,21 +26,21 @@ const TEST_DEPLOYER_ADDRESS2 = createAddress("0x456");
 describe("Nethermind Agent", () => {
   let handleTransaction: HandleTransaction;
   let fortaProxy = new Interface([CREATE_AGENT]);
-  let txEvent;
+
   let findings: Finding[];
 
   beforeAll(() => {
     handleTransaction = provideHandleTransaction(CREATE_AGENT, FORTA_CONTRACT_ADDRESS, TEST_DEPLOYER_ADDRESS);
   });
   it("returns empty findings if no transactions", async () => {
-    let txEvent = new TestTransactionEvent();
+    const txEvent = new TestTransactionEvent();
     findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([]);
   });
 
   it("returns empty findings if it's a different deployer", async () => {
     const TEST_DEPLOYER = createAddress("0x1");
-    txEvent = new TestTransactionEvent()
+    const txEvent = new TestTransactionEvent()
       .setFrom(TEST_DEPLOYER)
       .setTo(FORTA_CONTRACT_ADDRESS)
       .addTraces({
@@ -61,7 +61,7 @@ describe("Nethermind Agent", () => {
   });
 
   it("returns findings if it's from deployer", async () => {
-    txEvent = new TestTransactionEvent()
+    const txEvent = new TestTransactionEvent()
       .setFrom(TEST_DEPLOYER_ADDRESS)
       .setTo(FORTA_CONTRACT_ADDRESS)
       .addTraces({
@@ -96,7 +96,7 @@ describe("Nethermind Agent", () => {
   });
 
   it("returns findings from multiple deployers", async () => {
-    txEvent = new TestTransactionEvent()
+    const txEvent = new TestTransactionEvent()
       .setFrom(TEST_DEPLOYER_ADDRESS)
       .setTo(FORTA_CONTRACT_ADDRESS)
       .addTraces({

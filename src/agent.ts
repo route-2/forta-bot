@@ -1,4 +1,4 @@
-import { BlockEvent, Finding, HandleTransaction, TransactionEvent, FindingSeverity, FindingType } from "forta-agent";
+import { Finding, HandleTransaction, TransactionEvent, FindingSeverity, FindingType } from "forta-agent";
 import { NETHERMIND_DEPLOYER_ADDRESS, FORTA_CONTRACT_ADDRESS, CREATE_AGENT } from "./utils";
 
 export function provideHandleTransaction(functionAbi: string, proxy: string, deployer: string): HandleTransaction {
