@@ -35,5 +35,5 @@ export function provideHandleTransaction(functionAbi: string, proxy: string, dep
 }
 
 export default {
-  handleTransaction: provideHandleTransaction(CREATE_AGENT, NETHERMIND_DEPLOYER_ADDRESS, FORTA_CONTRACT_ADDRESS),
+  handleTransaction: provideHandleTransaction(CREATE_AGENT, FORTA_CONTRACT_ADDRESS, NETHERMIND_DEPLOYER_ADDRESS),
 };
