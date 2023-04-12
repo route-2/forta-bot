@@ -5,8 +5,6 @@ import { TestTransactionEvent } from "forta-agent-tools/lib/test";
 import { Interface } from "@ethersproject/abi";
 import { BigNumber } from "ethers";
 
-var utils = require("ethers").utils;
-
 import { NETHERMIND_DEPLOYER_ADDRESS, CREATE_AGENT, FORTA_CONTRACT_ADDRESS } from "./utils";
 
 const TEST_DATA_1 = {
