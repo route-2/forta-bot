@@ -1,10 +1,4 @@
-import {
-  FindingType,
-  FindingSeverity,
-  Finding,
-  HandleTransaction,
-  createTransactionEvent,
-} from "forta-agent";
+import { FindingType, FindingSeverity, Finding, HandleTransaction } from "forta-agent";
 import { createAddress } from "forta-agent-tools";
 import { provideHandleTransaction } from "./agent";
 import { TestTransactionEvent } from "forta-agent-tools/lib/test";
@@ -13,15 +7,11 @@ import { BigNumber } from "ethers";
 
 var utils = require("ethers").utils;
 
-import {
-  NETHERMIND_DEPLOYER_ADDRESS,
-  CREATE_AGENT,
-  FORTA_CONTRACT_ADDRESS,
-} from "./utils";
+import { NETHERMIND_DEPLOYER_ADDRESS, CREATE_AGENT, FORTA_CONTRACT_ADDRESS } from "./utils";
 
 const TEST_DATA_1 = {
   agentId: "44444444",
-  owner: "0x88dC3a2284FA62e0027d6D6B1fCfDd2141a143b8",
+  owner: NETHERMIND_DEPLOYER_ADDRESS,
   chainIds: "333",
   metadata: "abcdefghi",
 };
@@ -42,11 +32,7 @@ describe("Nethermind Agent", () => {
   let findings: Finding[];
 
   beforeAll(() => {
-    handleTransaction = provideHandleTransaction(
-      CREATE_AGENT,
-      FORTA_CONTRACT_ADDRESS,
-      TEST_DEPLOYER_ADDRESS
-    );
+    handleTransaction = provideHandleTransaction(CREATE_AGENT, FORTA_CONTRACT_ADDRESS, TEST_DEPLOYER_ADDRESS);
   });
   it("returns empty findings if no transactions", async () => {
     let txEvent = new TestTransactionEvent();
@@ -56,7 +42,6 @@ describe("Nethermind Agent", () => {
 
   it("returns empty findings if it's a different deployer", async () => {
     const TEST_DEPLOYER = createAddress("0x1");
-    console.log("reached here");
     txEvent = new TestTransactionEvent()
       .setFrom(TEST_DEPLOYER)
       .setTo(FORTA_CONTRACT_ADDRESS)
@@ -110,37 +95,36 @@ describe("Nethermind Agent", () => {
         },
       }),
     ]);
-  })
+  });
 
-
-  it("returns findings from multiple deployers", async() => {
+  it("returns findings from multiple deployers", async () => {
     txEvent = new TestTransactionEvent()
-    .setFrom(TEST_DEPLOYER_ADDRESS)
-    .setTo(FORTA_CONTRACT_ADDRESS)
-    .addTraces({
-      function: "" || fortaProxy.getFunction("createAgent") || undefined,
-      to: FORTA_CONTRACT_ADDRESS,
-      from: TEST_DEPLOYER_ADDRESS,
+      .setFrom(TEST_DEPLOYER_ADDRESS)
+      .setTo(FORTA_CONTRACT_ADDRESS)
+      .addTraces({
+        function: "" || fortaProxy.getFunction("createAgent") || undefined,
+        to: FORTA_CONTRACT_ADDRESS,
+        from: TEST_DEPLOYER_ADDRESS,
 
-      arguments: [
-        TEST_DATA_1.agentId,
-        TEST_DEPLOYER_ADDRESS,
-        TEST_DATA_1.metadata,
-        [BigNumber.from(TEST_DATA_1.chainIds[0])],
-      ],
-    })
-    .addTraces({
-      function: "" || fortaProxy.getFunction("createAgent") || undefined,
-      to: FORTA_CONTRACT_ADDRESS,
-      from: TEST_DEPLOYER_ADDRESS2,
+        arguments: [
+          TEST_DATA_1.agentId,
+          TEST_DEPLOYER_ADDRESS,
+          TEST_DATA_1.metadata,
+          [BigNumber.from(TEST_DATA_1.chainIds[0])],
+        ],
+      })
+      .addTraces({
+        function: "" || fortaProxy.getFunction("createAgent") || undefined,
+        to: FORTA_CONTRACT_ADDRESS,
+        from: TEST_DEPLOYER_ADDRESS2,
 
-      arguments: [
-        TEST_DATA_2.agentId,
-        TEST_DEPLOYER_ADDRESS2,
-        TEST_DATA_2.metadata,
-        [BigNumber.from(TEST_DATA_2.chainIds[0])],
-      ],
-    });
+        arguments: [
+          TEST_DATA_2.agentId,
+          TEST_DEPLOYER_ADDRESS2,
+          TEST_DATA_2.metadata,
+          [BigNumber.from(TEST_DATA_2.chainIds[0])],
+        ],
+      });
 
     findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([
@@ -171,12 +155,5 @@ describe("Nethermind Agent", () => {
         },
       }),
     ]);
-
-
-
-  })
-
- 
-
-  
+  });
 });
