@@ -1,144 +1,94 @@
-import { FindingType, FindingSeverity, Finding, HandleTransaction, createTransactionEvent} from "forta-agent";
-import agent from "./agent";
-import { SWAP_EVENT,UNISWAP_V3_FACTORY_ADDR } from "./utils";
+import { HandleTransaction } from "forta-agent";
+import { provideTransactionHandler } from "./agent";
+import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
+import { createAddress } from "forta-agent-tools";
+import { Finding, FindingSeverity, FindingType } from "forta-agent";
+import { BigNumber, ethers, utils } from "ethers";
+import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ADDR } from "./constants";
+import LRU from "lru-cache";
 
+const MOCK_DATA = {
+  from: createAddress("0x44"),
+  to: createAddress("0x55"),
+  poolAddress: "0xa374094527e1673a86de625aa59517c5de346d32",
+  sender: createAddress("0x22"),
+  recipient: createAddress("0x22"),
+  token0: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+  token1: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+  fee: "500",
+  amount0: BigNumber.from("222"),
+  amount1: BigNumber.from("444"),
+  sqrtPriceX96: BigNumber.from("111"),
+  liquidity: BigNumber.from("333"),
+  tick: BigNumber.from("666"),
+};
 
-
-describe("Swaps done on Uniswap V3", () => {
+describe("UNISWAP BOT TEST", () => {
   let handleTransaction: HandleTransaction;
-  const mockTxEvent = createTransactionEvent({} as any);
+  let poolCache: LRU<string, boolean>;
+  let provider: ethers.providers.Provider;
+  let mockProvider: MockEthersProvider;
+  let Ipool: utils.Interface;
 
-  beforeAll(() => {
-    handleTransaction = agent.handleTransaction;
+  beforeEach(() => {
+    mockProvider = new MockEthersProvider();
+    poolCache = new LRU<string, boolean>({ max: 1000 });
+    provider = mockProvider as unknown as ethers.providers.Provider;
+    Ipool = new utils.Interface(UNISWAP_V3_POOL_ADDR);
+    handleTransaction = provideTransactionHandler(UNISWAP_V3_FACTORY_ADDR, provider, poolCache);
   });
 
-  describe("handleTransaction", () => {
-    it("returns empty findings if there are no Swaps", async () => {
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
-
-      const findings = await handleTransaction(mockTxEvent);
-
-      expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT, UNISWAP_V3_FACTORY_ADDR);
-    });
-
-    it("returns a finding if there is a Swap on Uniswap", async () => {
-     
-      
-      const mockSwapEvent = {
-        args: {
-          sender: "0x1234567",
-          recipient:"0x5678901",
-          amount0:"444",
-          amount1:"333"
-        },
-      };
-     
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([mockSwapEvent]);
-
-      const findings = await handleTransaction(mockTxEvent);
-
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: "Uniswap V3 Swap",
-          description: `Swap of ${mockSwapEvent.args.amount0} and ${mockSwapEvent.args.amount1} between ${mockSwapEvent.args.sender} and ${mockSwapEvent.args.recipient}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          metadata: {
-            sender:mockSwapEvent.args.sender,
-            recipient:mockSwapEvent.args.recipient,
-            amount0: mockSwapEvent.args.amount0,
-            amount1:mockSwapEvent.args.amount1,
-          },
-        }),
-      ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT, UNISWAP_V3_FACTORY_ADDR);
-
-    });
-
-    it("returns multiple findings if there are multiple Swaps on Uniswap", async () => {
-
-      const mockSwapEvent1 = {
-        args: {
-          sender: "0x1234567",
-          recipient:"0x5678901",
-          amount0:"444",
-          amount1:"333"
-        },
-      };
-      const mockSwapEvent2 = {
-        args: {
-          sender: "0x11111",
-          recipient:"0x66666",
-          amount0:"222",
-          amount1:"3333"
-        },
-      };
-      const mockSwapEvent3 = {
-        args: {
-          sender: "0x44444",
-          recipient:"0x55555",
-          amount0:"111",
-          amount1:"4444"
-        },
-      };
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([mockSwapEvent1,mockSwapEvent2,mockSwapEvent3]);
-
-      const findings = await handleTransaction(mockTxEvent);
-
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: "Uniswap V3 Swap",
-          description: `Swap of ${mockSwapEvent1.args.amount0} and ${mockSwapEvent1.args.amount1} between ${mockSwapEvent1.args.sender} and ${mockSwapEvent1.args.recipient}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          metadata: {
-            sender:mockSwapEvent1.args.sender,
-            recipient:mockSwapEvent1.args.recipient,
-            amount0: mockSwapEvent1.args.amount0,
-            amount1:mockSwapEvent1.args.amount1,
-          },
-        }),
-        Finding.fromObject({
-          name: "Uniswap V3 Swap",
-          description: `Swap of ${mockSwapEvent2.args.amount0} and ${mockSwapEvent2.args.amount1} between ${mockSwapEvent2.args.sender} and ${mockSwapEvent2.args.recipient}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          metadata: {
-            sender:mockSwapEvent2.args.sender,
-            recipient:mockSwapEvent2.args.recipient,
-            amount0: mockSwapEvent2.args.amount0,
-            amount1:mockSwapEvent2.args.amount1,
-          },
-        }),
-        Finding.fromObject({
-          name: "Uniswap V3 Swap",
-          description: `Swap of ${mockSwapEvent3.args.amount0} and ${mockSwapEvent3.args.amount1} between ${mockSwapEvent3.args.sender} and ${mockSwapEvent3.args.recipient}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          metadata: {
-            sender:mockSwapEvent3.args.sender,
-            recipient:mockSwapEvent3.args.recipient,
-            amount0: mockSwapEvent3.args.amount0,
-            amount1:mockSwapEvent3.args.amount1,
-          },
-        }),
-      ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT, UNISWAP_V3_FACTORY_ADDR);
-
-
-
-
-
-
-
+  it("returns an empty finding if there are no swap events", async () => {
+    const txEvent = new TestTransactionEvent();
+    const findings = await handleTransaction(txEvent);
+    expect(findings.length).toEqual(0);
+    expect(findings).toStrictEqual([]);
   });
-});
+
+  it("returns a finding if there is a swap event", async () => {
+    const txEvent = new TestTransactionEvent()
+      .setFrom(MOCK_DATA.from)
+      .setTo(MOCK_DATA.to)
+      .setBlock(0)
+      .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA.poolAddress, [
+        MOCK_DATA.sender,
+        MOCK_DATA.recipient,
+        MOCK_DATA.amount0,
+        MOCK_DATA.amount1,
+        MOCK_DATA.sqrtPriceX96,
+        MOCK_DATA.liquidity,
+        MOCK_DATA.tick,
+      ]);
+
+    mockProvider.addCallTo(MOCK_DATA.poolAddress, 0, Ipool, "token0", { inputs: [], outputs: [MOCK_DATA.token0] });
+    mockProvider.addCallTo(MOCK_DATA.poolAddress, 0, Ipool, "token1", { inputs: [], outputs: [MOCK_DATA.token1] });
+    mockProvider.addCallTo(MOCK_DATA.poolAddress, 0, Ipool, "fee", {
+      inputs: [],
+      outputs: [BigNumber.from(MOCK_DATA.fee)],
+    });
+
+    mockProvider.setLatestBlock(0);
+    const findings = await handleTransaction(txEvent);
+
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: "Uniswap V3 Swap Event",
+        description: `swap event detected in uniswap v3`,
+        alertId: "UNISWAP-V3-SWAP-EVENT",
+        severity: FindingSeverity.Info,
+        type: FindingType.Info,
+        protocol: "Uniswap",
+        metadata: {
+          poolAddress: MOCK_DATA.poolAddress,
+          sender: MOCK_DATA.sender,
+          recipient: MOCK_DATA.recipient,
+          amount0: MOCK_DATA.amount0.toString(),
+          amount1: MOCK_DATA.amount1.toString(),
+        },
+      }),
+    ]);
+
+    expect(poolCache.get(MOCK_DATA.poolAddress)).toEqual(true);
+    expect(mockProvider.call).toBeCalledTimes(3);
+  });
 });
