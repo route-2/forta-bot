@@ -10,7 +10,7 @@ type CacheValue = boolean;
 const isUniswapPool = async (
   factoryAddress: string,
   provider: ethers.providers.Provider,
-  poolCache: LRU<string, boolean>,
+  poolCache: LRU<string, CacheValue>,
   pairAddress: string,
   block: number
 ): Promise<boolean> => {
