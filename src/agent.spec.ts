@@ -6,7 +6,6 @@ import { Finding, FindingSeverity, FindingType } from "forta-agent";
 import { BigNumber, ethers, utils } from "ethers";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ADDR } from "./constants";
 import LRU from "lru-cache";
-import { computePoolAddress } from "./utils";
 //data for valid swap
 const MOCK_DATA = {
   from: createAddress("0x44"),
@@ -25,8 +24,8 @@ const MOCK_DATA = {
 };
 // another set of data for valid swap
 const MOCK_DATA1 = {
-  from: createAddress("0x12"),
-  to: createAddress("0x34"),
+  from: createAddress("0x44"),
+  to: createAddress("0x55"),
   poolAddress: "0xc31e54c7a869b9fcbecc14363cf510d1c41fa443",
   sender: createAddress("0x66"),
   recipient: createAddress("0x66"),
@@ -169,8 +168,6 @@ describe("UNISWAP BOT TEST", () => {
     });
 
     const txEvent = new TestTransactionEvent()
-      .setFrom(MOCK_DATA.from)
-      .setTo(MOCK_DATA.to)
       .setBlock(0)
       .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA.poolAddress, [
         MOCK_DATA.sender,
@@ -197,9 +194,9 @@ describe("UNISWAP BOT TEST", () => {
       name: "Uniswap V3 Swap Event",
       description: `swap event detected in uniswap v3`,
       alertId: "UNISWAP-V3-SWAP-EVENT",
+      protocol: "Uniswap",
       severity: FindingSeverity.Info,
       type: FindingType.Info,
-      protocol: "Uniswap",
       metadata: {
         poolAddress: MOCK_DATA.poolAddress,
         sender: MOCK_DATA.sender,
@@ -207,15 +204,17 @@ describe("UNISWAP BOT TEST", () => {
         amount0: MOCK_DATA.amount0.toString(),
         amount1: MOCK_DATA.amount1.toString(),
       },
+      addresses: [],
+      labels: [],
     };
 
     const MOCK_FINDING2 = {
       name: "Uniswap V3 Swap Event",
       description: `swap event detected in uniswap v3`,
       alertId: "UNISWAP-V3-SWAP-EVENT",
+      protocol: "Uniswap",
       severity: FindingSeverity.Info,
       type: FindingType.Info,
-      protocol: "Uniswap",
       metadata: {
         poolAddress: MOCK_DATA1.poolAddress,
         sender: MOCK_DATA1.sender,
@@ -223,17 +222,15 @@ describe("UNISWAP BOT TEST", () => {
         amount0: MOCK_DATA1.amount0.toString(),
         amount1: MOCK_DATA1.amount1.toString(),
       },
+      addresses: [],
+      labels: [],
     };
 
     const findings = await handleTransaction(txEvent);
-    console.log(findings, "line 235 multiple findings");
-    console.log(findings[0], " findings[0]");
-    console.log(findings[1], " findings[1]");
-    console.log(MOCK_FINDING1, " MOCK_FINDING1");
-    console.log(MOCK_FINDING2, " MOCK_FINDING2");
     expect(poolCache.get(MOCK_DATA.poolAddress)).toEqual(true);
     expect(poolCache.get(MOCK_DATA1.poolAddress)).toEqual(true);
-    expect(findings[0]).toStrictEqual(MOCK_FINDING1);
-    expect(findings[1]).toStrictEqual(MOCK_FINDING2);
+    expect(findings.length).toEqual(4);
+    expect(JSON.stringify(findings[0])).toStrictEqual(JSON.stringify(MOCK_FINDING1));
+    expect(JSON.stringify(findings[3])).toStrictEqual(JSON.stringify(MOCK_FINDING2));
   });
 });

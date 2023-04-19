@@ -2,7 +2,6 @@ import { ethers, Finding, getEthersProvider, HandleTransaction, TransactionEvent
 import { FindingSeverity, FindingType } from "forta-agent";
 import LRU from "lru-cache";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ADDR } from "./constants";
-
 import { computePoolAddress, uniswapPoolCache } from "./utils";
 
 type CacheValue = boolean;
@@ -46,7 +45,7 @@ export function provideTransactionHandler(
         const block = txEvent.blockNumber;
         isPool = await isUniswapPool(factoryAddress, provider, uniswapPoolCache, pairAddress, block);
       } catch (error) {
-        return [];
+        return findings;
       }
       if (isPool) {
         swapEvents.forEach((transferEvent) => {
