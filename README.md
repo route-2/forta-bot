@@ -19,11 +19,12 @@ This bot detects every swaps made on Uniswap V3 Pools.
   - Severity is always set to "info"
   - Type is always set to "info" 
   - Metadata Fields:
-                - poolAddress: Address of the Smart Contract (Uniswap V3 Pool),
-                - sender: Person who initiates the swap,
-                - recipient: Person who recieves the swapped assets,
-                - amount0:Amount of token swapped,
-                - amount1:Amount of token recieved 
+    - poolAddress: Address of the Smart Contract (Uniswap V3 Pool),
+    - sender: Person who initiates the swap,
+    - recipient: Person who recieves the swapped assets,
+    - amount0:Amount of token swapped,
+    - amount1:Amount of token recieved
+                
 
 ## Test Data
 

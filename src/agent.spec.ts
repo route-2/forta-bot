@@ -4,7 +4,8 @@ import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/
 import { createAddress } from "forta-agent-tools";
 import { Finding, FindingSeverity, FindingType } from "forta-agent";
 import { BigNumber, ethers, utils } from "ethers";
-import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ADDR } from "./constants";
+import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
+import { createFinding } from "./finding";
 import LRU from "lru-cache";
 //data for valid swap
 const MOCK_DATA = {
@@ -67,7 +68,7 @@ describe("UNISWAP BOT TEST", () => {
     mockProvider = new MockEthersProvider();
     poolCache = new LRU<string, boolean>({ max: 1000 });
     provider = mockProvider as unknown as ethers.providers.Provider;
-    Ipool = new utils.Interface(UNISWAP_V3_POOL_ADDR);
+    Ipool = new utils.Interface(UNISWAP_V3_POOL_ABI);
     handleTransaction = provideTransactionHandler(UNISWAP_V3_FACTORY_ADDR, provider, poolCache);
   });
 
@@ -83,7 +84,7 @@ describe("UNISWAP BOT TEST", () => {
       .setFrom(MOCK_DATA.from)
       .setTo(MOCK_DATA.to)
       .setBlock(0)
-      .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA.poolAddress, [
+      .addEventLog(UNISWAP_V3_POOL_ABI[0], MOCK_DATA.poolAddress, [
         MOCK_DATA.sender,
         MOCK_DATA.recipient,
         MOCK_DATA.amount0,
@@ -137,7 +138,7 @@ describe("UNISWAP BOT TEST", () => {
       .setFrom(MOCK_DATA2.from)
       .setTo(MOCK_DATA2.to)
       .setBlock(1)
-      .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA2.poolAddress, [
+      .addEventLog(UNISWAP_V3_POOL_ABI[0], MOCK_DATA2.poolAddress, [
         MOCK_DATA2.sender,
         MOCK_DATA2.recipient,
         MOCK_DATA2.amount0,
@@ -169,7 +170,7 @@ describe("UNISWAP BOT TEST", () => {
 
     const txEvent = new TestTransactionEvent()
       .setBlock(0)
-      .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA.poolAddress, [
+      .addEventLog(UNISWAP_V3_POOL_ABI[0], MOCK_DATA.poolAddress, [
         MOCK_DATA.sender,
         MOCK_DATA.recipient,
         MOCK_DATA.amount0,
@@ -178,7 +179,7 @@ describe("UNISWAP BOT TEST", () => {
         MOCK_DATA.liquidity,
         MOCK_DATA.tick,
       ])
-      .addEventLog(UNISWAP_V3_POOL_ADDR[0], MOCK_DATA1.poolAddress, [
+      .addEventLog(UNISWAP_V3_POOL_ABI[0], MOCK_DATA1.poolAddress, [
         MOCK_DATA1.sender,
         MOCK_DATA1.recipient,
         MOCK_DATA1.amount0,
@@ -190,41 +191,23 @@ describe("UNISWAP BOT TEST", () => {
 
     mockProvider.setLatestBlock(0);
 
-    const MOCK_FINDING1 = {
-      name: "Uniswap V3 Swap Event",
-      description: `swap event detected in uniswap v3`,
-      alertId: "UNISWAP-V3-SWAP-EVENT",
-      protocol: "Uniswap",
-      severity: FindingSeverity.Info,
-      type: FindingType.Info,
-      metadata: {
-        poolAddress: MOCK_DATA.poolAddress,
-        sender: MOCK_DATA.sender,
-        recipient: MOCK_DATA.recipient,
-        amount0: MOCK_DATA.amount0.toString(),
-        amount1: MOCK_DATA.amount1.toString(),
-      },
-      addresses: [],
-      labels: [],
-    };
+   const MOCK_FINDING1 = createFinding(
+      MOCK_DATA.poolAddress,
+      MOCK_DATA.sender,
+      MOCK_DATA.recipient,
+      MOCK_DATA.amount0,
+      MOCK_DATA.amount1,
+    
+   );
+    const MOCK_FINDING2 = createFinding(
+      MOCK_DATA1.poolAddress,
+      MOCK_DATA1.sender,
+      MOCK_DATA1.recipient,
+      MOCK_DATA1.amount0,
+      MOCK_DATA1.amount1,
+    );
 
-    const MOCK_FINDING2 = {
-      name: "Uniswap V3 Swap Event",
-      description: `swap event detected in uniswap v3`,
-      alertId: "UNISWAP-V3-SWAP-EVENT",
-      protocol: "Uniswap",
-      severity: FindingSeverity.Info,
-      type: FindingType.Info,
-      metadata: {
-        poolAddress: MOCK_DATA1.poolAddress,
-        sender: MOCK_DATA1.sender,
-        recipient: MOCK_DATA1.recipient,
-        amount0: MOCK_DATA1.amount0.toString(),
-        amount1: MOCK_DATA1.amount1.toString(),
-      },
-      addresses: [],
-      labels: [],
-    };
+   
 
     const findings = await handleTransaction(txEvent);
     expect(poolCache.get(MOCK_DATA.poolAddress)).toEqual(true);
