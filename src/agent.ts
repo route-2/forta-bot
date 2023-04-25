@@ -1,39 +1,45 @@
-import { Finding, HandleTransaction, TransactionEvent, FindingSeverity, FindingType } from "forta-agent";
-import { NETHERMIND_DEPLOYER_ADDRESS, FORTA_CONTRACT_ADDRESS, CREATE_AGENT } from "./utils";
 
-export function provideHandleTransaction(functionAbi: string, proxy: string, deployer: string): HandleTransaction {
+import { ethers, Finding, getEthersProvider, HandleTransaction, TransactionEvent } from "forta-agent";
+import LRU from "lru-cache";
+import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
+import { uniswapPoolCache, isUniswapPool } from "./utils";
+import { createFinding } from "./finding";
+
+export function provideTransactionHandler(
+  factoryAddress: string,
+  provider: ethers.providers.Provider,
+  uniswapPoolCache: LRU<string, boolean>
+): HandleTransaction {
   return async function handleTransaction(txEvent: TransactionEvent) {
     const findings: Finding[] = [];
+    // filter for Swap events
+    const swapEvents = txEvent.filterLog(UNISWAP_V3_POOL_ABI[0]);
+    for (const swapEvent of swapEvents) {
+      const pairAddress = swapEvent["address"];
+      let isPool;
 
-    if (txEvent.from != deployer.toLowerCase()) {
-      return findings;
+      try {
+        const blockNumber = txEvent.blockNumber;
+        isPool = await isUniswapPool(factoryAddress, provider, uniswapPoolCache, pairAddress, blockNumber);
+      } catch (error) {
+        return findings;
+      }
+      if (isPool) {
+        swapEvents.forEach((transferEvent) => {
+          const { sender, recipient, amount0, amount1 } = transferEvent.args;
+
+          // create a finding for each swap event
+          findings.push(createFinding(pairAddress, sender, recipient, amount0, amount1));
+        });
+      }
     }
-
-    const createBotTx = txEvent.filterFunction(functionAbi, proxy);
-
-    createBotTx.forEach((call) => {
-      const { agentId, owner, chainIds, metadata } = call.args;
-      findings.push(
-        Finding.fromObject({
-          name: "New Nethermind Bot Created",
-          description: `New bot deployed by NM`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          metadata: {
-            agentId: agentId.toString(),
-            owner,
-            chainIds: chainIds.toString(),
-            metadata,
-          },
-        })
-      );
-    });
 
     return findings;
   };
 }
 
 export default {
-  handleTransaction: provideHandleTransaction(CREATE_AGENT, FORTA_CONTRACT_ADDRESS, NETHERMIND_DEPLOYER_ADDRESS),
+
+  handleTransaction: provideTransactionHandler(UNISWAP_V3_FACTORY_ADDR, getEthersProvider(), uniswapPoolCache),
+
 };
