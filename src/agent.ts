@@ -3,6 +3,7 @@ import { FindingSeverity, FindingType } from "forta-agent";
 import LRU from "lru-cache";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
 import { uniswapPoolCache, isUniswapPool } from "./utils";
+import { createFinding } from "./finding";
 
 export function provideTransactionHandler(
   factoryAddress: string,
@@ -28,23 +29,7 @@ export function provideTransactionHandler(
           const { sender, recipient, amount0, amount1 } = transferEvent.args;
 
           // create a finding for each swap event
-          findings.push(
-            Finding.fromObject({
-              name: "Uniswap V3 Swap Event",
-              description: "swap event detected in uniswap v3",
-              alertId: "UNISWAP-V3-SWAP-EVENT",
-              severity: FindingSeverity.Info,
-              type: FindingType.Info,
-              protocol: "Uniswap",
-              metadata: {
-                poolAddress: pairAddress,
-                sender,
-                recipient,
-                amount0: amount0.toString(),
-                amount1: amount1.toString(),
-              },
-            })
-          );
+          findings.push(createFinding(pairAddress, sender, recipient, amount0, amount1));
         });
       }
     }
