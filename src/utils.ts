@@ -3,7 +3,6 @@ import { INIT_CODE, UNISWAP_V3_POOL_ABI } from "./constants";
 import LRU from "lru-cache";
 import { ethers } from "ethers";
 
-
 type CacheValue = boolean;
 
 // create a new cache instance with a maximum size of 500

@@ -191,23 +191,20 @@ describe("UNISWAP BOT TEST", () => {
 
     mockProvider.setLatestBlock(0);
 
-   const MOCK_FINDING1 = createFinding(
+    const MOCK_FINDING1 = createFinding(
       MOCK_DATA.poolAddress,
       MOCK_DATA.sender,
       MOCK_DATA.recipient,
       MOCK_DATA.amount0,
-      MOCK_DATA.amount1,
-    
-   );
+      MOCK_DATA.amount1
+    );
     const MOCK_FINDING2 = createFinding(
       MOCK_DATA1.poolAddress,
       MOCK_DATA1.sender,
       MOCK_DATA1.recipient,
       MOCK_DATA1.amount0,
-      MOCK_DATA1.amount1,
+      MOCK_DATA1.amount1
     );
-
-   
 
     const findings = await handleTransaction(txEvent);
     expect(poolCache.get(MOCK_DATA.poolAddress)).toEqual(true);

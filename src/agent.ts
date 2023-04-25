@@ -2,10 +2,7 @@ import { ethers, Finding, getEthersProvider, HandleTransaction, TransactionEvent
 import { FindingSeverity, FindingType } from "forta-agent";
 import LRU from "lru-cache";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
-import { uniswapPoolCache,isUniswapPool } from "./utils";
-
-
-
+import { uniswapPoolCache, isUniswapPool } from "./utils";
 
 export function provideTransactionHandler(
   factoryAddress: string,
