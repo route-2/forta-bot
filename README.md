@@ -7,6 +7,7 @@ This bot detects every swaps made on Uniswap V3 Pools.
 ## Supported Chains
 
 - Polygon
+- Ethereum
 - Arbitrum
 
 
