@@ -1,6 +1,7 @@
+import { BigNumber } from "ethers";
 import { Finding, FindingSeverity, FindingType } from "forta-agent";
 
-export const createFinding = (poolAddress: string,sender:string,recipient:string,amount0:number,amount1:number): Finding => {
+export const createFinding = (poolAddress: string,sender:string,recipient:string,amount0:BigNumber,amount1:BigNumber): Finding => {
     return Finding.fromObject({
         name: "Uniswap V3 Swap Event",
         description: "swap event detected in uniswap v3",
