@@ -4,7 +4,6 @@ import LRU from "lru-cache";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
 import { uniswapPoolCache,isUniswapPool } from "./utils";
 
-type CacheValue = boolean;
 
 
 

@@ -1,8 +1,8 @@
 import { defaultAbiCoder, getCreate2Address, solidityKeccak256 } from "ethers/lib/utils";
-import { INIT_CODE, UNISWAP_V3_FACTORY_ADDR } from "./constants";
+import { INIT_CODE, UNISWAP_V3_POOL_ABI } from "./constants";
 import LRU from "lru-cache";
 import { ethers } from "ethers";
-import { UNISWAP_V3_POOL_ABI } from "./constants";
+
 
 type CacheValue = boolean;
 
