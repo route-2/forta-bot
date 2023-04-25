@@ -57,9 +57,7 @@ const MOCK_DATA2 = {
   tick: BigNumber.from("777"),
 };
 
-
-
-const createFinding= (
+const createFinding = (
   poolAddress: string,
   sender: string,
   recipient: string,
@@ -82,8 +80,6 @@ const createFinding= (
     },
   });
 };
-
-
 
 describe("UNISWAP BOT TEST", () => {
   let handleTransaction: HandleTransaction;
