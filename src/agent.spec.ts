@@ -1,3 +1,4 @@
+
 import { HandleTransaction } from "forta-agent";
 import { provideTransactionHandler } from "./agent";
 import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
@@ -236,5 +237,6 @@ describe("UNISWAP BOT TEST", () => {
     expect(findings.length).toEqual(4);
     expect(JSON.stringify(findings[0])).toStrictEqual(JSON.stringify(MOCK_FINDING1));
     expect(JSON.stringify(findings[3])).toStrictEqual(JSON.stringify(MOCK_FINDING2));
+
   });
 });

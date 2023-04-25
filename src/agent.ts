@@ -1,3 +1,4 @@
+
 import { ethers, Finding, getEthersProvider, HandleTransaction, TransactionEvent } from "forta-agent";
 import LRU from "lru-cache";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
@@ -32,10 +33,13 @@ export function provideTransactionHandler(
         });
       }
     }
+
     return findings;
   };
 }
 
 export default {
+
   handleTransaction: provideTransactionHandler(UNISWAP_V3_FACTORY_ADDR, getEthersProvider(), uniswapPoolCache),
+
 };
