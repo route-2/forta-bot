@@ -5,7 +5,7 @@ import { createAddress } from "forta-agent-tools";
 import { Finding, FindingSeverity, FindingType } from "forta-agent";
 import { BigNumber, ethers, utils } from "ethers";
 import { UNISWAP_V3_FACTORY_ADDR, UNISWAP_V3_POOL_ABI } from "./constants";
-import { createFinding } from "./finding";
+
 import LRU from "lru-cache";
 //data for valid swap
 const MOCK_DATA = {
@@ -56,6 +56,34 @@ const MOCK_DATA2 = {
   liquidity: BigNumber.from("222"),
   tick: BigNumber.from("777"),
 };
+
+
+
+const createFinding= (
+  poolAddress: string,
+  sender: string,
+  recipient: string,
+  amount0: BigNumber,
+  amount1: BigNumber
+): Finding => {
+  return Finding.fromObject({
+    name: "Uniswap V3 Swap Event",
+    description: "swap event detected in uniswap v3",
+    alertId: "UNISWAP-V3-SWAP-EVENT",
+    severity: FindingSeverity.Info,
+    type: FindingType.Info,
+    protocol: "Uniswap",
+    metadata: {
+      poolAddress: poolAddress,
+      sender: sender,
+      recipient: recipient,
+      amount0: amount0.toString(),
+      amount1: amount1.toString(),
+    },
+  });
+};
+
+
 
 describe("UNISWAP BOT TEST", () => {
   let handleTransaction: HandleTransaction;
