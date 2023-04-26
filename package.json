@@ -27,8 +27,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "dotenv": "^16.0.3",
     "forta-agent": "^0.1.26",
+    "forta-agent-tools": "^3.2.7",
     "lru-cache": "^8.0.4"
   },
   "devDependencies": {

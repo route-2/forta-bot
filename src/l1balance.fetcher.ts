@@ -2,24 +2,25 @@ import { providers, Contract,utils, BigNumber } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import LRU from "lru-cache";
 import { BALANCEOF_DAI_ABI } from "./utils";
+import NetworkData from "./network";
 
 export default class L1BalanceFetcher {
-readonly provider: providers.Provider;
+ provider: providers.Provider;
   private cache: LRU<number, BigNumber>;
-  private tokenContract: Contract;
-  private escrowAddress: string;
+  tokenContract: Contract;
+  private networkManager: NetworkData;
 
   constructor(provider: providers.Provider
-    , tokenAddress: string
-    , escrowAddress: string) {
+
+    , networkManager: NetworkData) {
     this.provider = provider;
     this.cache = new LRU<number, BigNumber>({
       max: 10000,
     });
     
-    this.tokenContract = new Contract(tokenAddress, new Interface (BALANCEOF_DAI_ABI), this.provider);
-
-    this.escrowAddress = escrowAddress;
+    this.tokenContract = new Contract(networkManager.escrowAddress, new Interface (BALANCEOF_DAI_ABI), this.provider);
+    this.networkManager = networkManager;
+    
   }
 
 
@@ -29,7 +30,7 @@ readonly provider: providers.Provider;
 
     if (this.cache.has(key)) return this.cache.get(key) as unknown as  Promise<any>;
    
-    const l1Balance = await this.tokenContract.balanceOf(this.escrowAddress, { blockTag: block - 1 });
+    const l1Balance:BigNumber = await this.tokenContract.balanceOf(this.networkManager.escrowAddress, { blockTag: block - 1 });
    
 
 
@@ -40,6 +41,8 @@ readonly provider: providers.Provider;
 
     return l1Balance;
   }
+
+
 
 
 

@@ -3,72 +3,104 @@ import {
   FindingSeverity,
   Finding,
   HandleTransaction,
-  createTransactionEvent,
-  ethers,
+  TransactionEvent,
+  getEthersProvider,
 } from "forta-agent";
-import agent, {
-  ERC20_TRANSFER_EVENT,
-  TETHER_ADDRESS,
-  TETHER_DECIMALS,
-} from "./agent";
+import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
+import {createAddress} from "forta-agent-tools"
+import { BigNumber } from "ethers";
+import { L1_DAI, L2_DAI, ERC20_TRANSFER_EVENT } from "./utils";
+import L1BalanceFetcher from "./l1balance.fetcher";
+import L2SupplyFetcher from "./l2supply.fetcher";
+import NetworkManager from "./network";
+import { NETWORK_MAP } from "./network";
+import { ethers } from "ethers";
+import { Interface } from "ethers/lib/utils";
+import { Contract } from "ethers";
+import { provideHandleTransaction } from "./agent";
 
-describe("high tether transfer agent", () => {
+const TRANSFER_EVENT_INTERFACE = new Interface([ERC20_TRANSFER_EVENT]);
+
+
+
+
+const createFinding = (
+  name: string,
+  amount: BigNumber,
+  from: string,
+  to: string,
+  escrow: string
+): Finding => {
+  return Finding.fromObject({
+    name: "DAI total supply exceeds balance ",
+    description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
+    alertId: `${name}-Transfer`,
+    severity: FindingSeverity.Info,
+    type: FindingType.Info,
+    protocol: "MakerDao",
+    metadata: {
+      from: from,
+      to: to,
+      escrow: escrow,
+      amount: amount.toString(),
+    },
+  });
+}
+const mockTotalSupplyFetcher = {
+  getL2Supply: jest.fn(),
+};
+const mockBalanceFetcher = {
+  getEscrowBalance: jest.fn(),
+};
+
+
+
+
+
+const MOCK_TRANSFER_FUNCTION: string = "event Transfer(address indexed from, address indexed to, uint256 value)"
+
+
+
+describe("MakerDao Dai L1 Escrow Balance and L2 Total Supply Check", () => {
   let handleTransaction: HandleTransaction;
-  const mockTxEvent = createTransactionEvent({} as any);
+  let txEvent: TransactionEvent;
+  let findings: Finding[];
+  jest.setTimeout(10000);
 
-  beforeAll(() => {
-    handleTransaction = agent.handleTransaction;
-  });
+  const mockProvider = new MockEthersProvider();
+  const mockNetworkManager = {
+    name: "Optimism",
+    escrowAddress: createAddress("0x222"),
+  
+  };
+  
 
-  describe("handleTransaction", () => {
-    it("returns empty findings if there are no Tether transfers", async () => {
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
 
-      const findings = await handleTransaction(mockTxEvent);
+  const mockL1BalanceFetcher = new L1BalanceFetcher(mockProvider as any, mockNetworkManager as any);
 
-      expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
-    });
 
-    it("returns a finding if there is a Tether transfer over 10,000", async () => {
-      const mockTetherTransferEvent = {
-        args: {
-          from: "0xabc",
-          to: "0xdef",
-          value: ethers.BigNumber.from("20000000000"), //20k with 6 decimals
-        },
-      };
-      mockTxEvent.filterLog = jest
-        .fn()
-        .mockReturnValue([mockTetherTransferEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+  beforeEach(() => {
+    findings = [];
+    txEvent = new TestTransactionEvent();
+    handleTransaction = provideHandleTransaction(MOCK_TRANSFER_FUNCTION, mockNetworkManager as any, mockBalanceFetcher as any, mockTotalSupplyFetcher as any);
+  }
+  );
 
-      const normalizedValue = mockTetherTransferEvent.args.value.div(
-        10 ** TETHER_DECIMALS
-      );
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            to: mockTetherTransferEvent.args.to,
-            from: mockTetherTransferEvent.args.from,
-          },
-        }),
-      ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
-    });
-  });
-});
+  it("should return no findings if no Transfer events", async () => {
+    const txEvent = new TestTransactionEvent();
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toEqual([]);
+  }
+  );
+
+
+
+
+
+
+
+ 
+
+}
+);
