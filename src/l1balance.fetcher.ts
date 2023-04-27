@@ -1,52 +1,51 @@
-import { providers, Contract,utils, BigNumber } from "ethers";
-import { Interface } from "ethers/lib/utils";
+import { providers, Contract, BigNumber,utils } from "ethers";
 import LRU from "lru-cache";
-import { BALANCEOF_DAI_ABI } from "./utils";
+import { BALANCE_IFACE } from "./utils";
 import NetworkData from "./network";
 
-export default class L1BalanceFetcher {
- provider: providers.Provider;
-  private cache: LRU<number, BigNumber>;
-  tokenContract: Contract;
-  private networkManager: NetworkData;
-
-  constructor(provider: providers.Provider
-
-    , networkManager: NetworkData) {
-    this.provider = provider;
-    this.cache = new LRU<number, BigNumber>({
-      max: 10000,
-    });
-    
-    this.tokenContract = new Contract(networkManager.escrowAddress, new Interface (BALANCEOF_DAI_ABI), this.provider);
-    this.networkManager = networkManager;
-    
-  }
 
 
-  public async getEscrowBalance(block:number): Promise<BigNumber> {
+export default class L1BalanceFetcher{
+    provider: providers.Provider;
+    private cache: LRU<string, BigNumber>;
+    tokenContract: Contract;
+    private networkManager: NetworkData;
 
-    const key: number = block;
+    constructor(provider: providers.Provider,
+        tokenInterface:utils.Interface,
+        networkManager: NetworkData
+    ) {
+        this.provider = provider;
+        this.cache = new LRU<string, BigNumber>({
+            max: 10000,
+        });
 
-    if (this.cache.has(key)) return this.cache.get(key) as unknown as  Promise<any>;
-   
-    const l1Balance:BigNumber = await this.tokenContract.balanceOf(this.networkManager.escrowAddress, { blockTag: block - 1 });
-   
-
-
-    this.cache.set(
-        key,
-        l1Balance
-    )
-
-    return l1Balance;
-  }
-
-
-
+        this.tokenContract = new Contract(networkManager.escrowAddress,tokenInterface, provider);
+        this.networkManager = networkManager;
+    }
 
 
-  
+    public setTokenContract() {
+        if (this.tokenContract.address != this.networkManager.escrowAddress) {
+          this.tokenContract = new Contract(this.networkManager.escrowAddress, BALANCE_IFACE, this.provider);
+        }
+      }
+
+    public async getEscrowBalance(block: number): Promise<BigNumber> {
+
+        const key: string = `${this.networkManager.escrowAddress}-${block}`;
+
+        if (this.cache.has(key)) return this.cache.get(key) as  BigNumber;
+
+        const l1Balance:BigNumber = await this.tokenContract.balanceOf(this.networkManager.escrowAddress, { blockTag: block - 1 });
+
+        this.cache.set(
+            key,
+            l1Balance
+        )
+
+        return l1Balance;
+    }
 
 
 
