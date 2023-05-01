@@ -76,7 +76,33 @@ describe("MakerDao Dai L1 Escrow Balance and L2 Total Supply Check", () => {
     escrowAddress: createAddress("0x222"),
   
   };
+  const mockTotalSupplyFetcher = {
+    getL2Supply: jest.fn(),
+  };
   
+  const mockCreateFinding = (
+    name: string,
+    address:string,
+    l1Balance:number,
+    l2Supply:number
+
+  )  : Finding => {
+    return Finding.fromObject({
+        name: "DAI total supply exceeds balance ",
+        description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
+        alertId: `${name}-Transfer`,
+        severity: FindingSeverity.Info,
+        type: FindingType.Info,
+        protocol: "MakerDao",
+        metadata: {
+            address: address,
+            l1Balance: l1Balance.toString(),
+            l2Supply: l2Supply.toString(),
+        },
+
+
+    })
+  }
 
 
  
@@ -97,48 +123,80 @@ describe("MakerDao Dai L1 Escrow Balance and L2 Total Supply Check", () => {
 
   it("returns a total supply exceed balance", async() => {
 
+    const mockTotalSupplyFetcher = {
+      getL2Supply: jest.fn().mockResolvedValue(ethers.BigNumber.from(1000)),
+    };
+    const mockBalanceFetcher = {
+      getEscrowBalance: jest.fn().mockResolvedValue(ethers.BigNumber.from(100)),
+    };
+    const mockNetworkManager = {
+      name: "Optimism",
+      escrowAddress: createAddress("0x222"),
 
+    };
+    const mockCreateFinding = (
+      name: string,
+      address:string,
+      l1Balance:number,
+      l2Supply:number
+
+    )  : Finding => {
+      return Finding.fromObject({
+          name: "DAI total supply exceeds balance ",
+          description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
+          alertId: `${name}-Transfer`,
+          severity: FindingSeverity.Info,
+          type: FindingType.Info,
+          protocol: "MakerDao",
+          metadata: {
+              address: address,
+              l1Balance: l1Balance.toString(),
+              l2Supply: l2Supply.toString(),
+          },
+        
+          
+
+      })
+    }
     let block = 11291046;
     let provider = getEthersProvider();
     const MOCK_FROM_ADDRESS = createAddress("0x0001a");
 const MOCK_TO_ADDRESS = mockNetworkManager.escrowAddress;
 const MOCK_L2_DAI_ADDRESS = L2_DAI;
 
+const MOCK_AMOUNT = ethers.BigNumber.from(1000);
 
+const log = TRANSFER_EVENT_INTERFACE.encodeEventLog(
+  ERC20_TRANSFER_EVENT,
+  [MOCK_FROM_ADDRESS, MOCK_TO_ADDRESS, MOCK_AMOUNT]
+);
 
-    const log = TRANSFER_EVENT_INTERFACE.encodeEventLog(TRANSFER_EVENT_INTERFACE.getEvent("Transfer"), [
-      MOCK_FROM_ADDRESS,
-      MOCK_TO_ADDRESS,
-      1000,
-    ]);
-
-    txEvent = new TestTransactionEvent()
-      .addEventLog(MOCK_DAI_ADDRESS, log.data)
-      .setBlock(block);
-      const l2Block: number = await provider.getBlockNumber();
-      const tokenContract = new Contract(MOCK_L2_DAI_ADDRESS,TOTAL_SUPPLY_ABI ,provider);
-      const l2Supply = await tokenContract.totalSupply({ blockTag: l2Block - 1 });
-
-
-
-      expect(findings).toStrictEqual([
-        createFinding(
-          mockNetworkManager.name,
-          l2Supply,
-          MOCK_FROM_ADDRESS,
-          MOCK_TO_ADDRESS,
-          MOCK_L2_DAI_ADDRESS,
-        ),
-      ]);
-    }
-  );
-    
-
-
-
-
-
- 
-
+txEvent = new TestTransactionEvent()
+.addEventLog(MOCK_DAI_ADDRESS, log.data)
+.setBlock(block);
+const l2Block: number = await provider.getBlockNumber();
+const tokenContract = new Contract(MOCK_L2_DAI_ADDRESS,TOTAL_SUPPLY_ABI ,provider);
+const l2Supply = await tokenContract.totalSupply({ blockTag: l2Block - 1 });
+expect(findings).toStrictEqual([
+  createFinding(
+    mockNetworkManager.name,
+    l2Supply,
+    MOCK_FROM_ADDRESS,
+    MOCK_TO_ADDRESS,
+    MOCK_L2_DAI_ADDRESS,
+  ),
+]);
 }
 );
+
+
+
+
+
+
+   
+
+
+   
+
+});

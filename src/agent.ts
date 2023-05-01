@@ -52,25 +52,29 @@ export function provideHandleTransaction(
     const txLogs = txEvent.filterLog(transferEvent, L1_DAI);
     const l2Supply: BigNumber = await l2SupplyFetcher.getL2Supply(txEvent.blockNumber);
     const l1Balance: BigNumber = await l1BalanceFetcher.getEscrowBalance(txEvent.blockNumber);
+    const escrow = networkManager.escrowAddress
+    const name = networkManager.name
     if (!txLogs) return findings;
 
-    for (const log of txLogs) {
-      const { from, to, amount } = log.args;
-      const amountBN = BigNumber.from(amount);
-      if (l1Balance.lt(l2Supply)) {
-        findings.push(
-          createFinding(
-           networkManager.escrowAddress,
-            amountBN,
-            from,
-            to,
-           networkManager.escrowAddress
-          )
-        );
-      }
-    }
-
-
+  if(l1Balance< l2Supply)
+  {
+    findings.push(
+      Finding.fromObject({
+        name: `DAI total supply exceeds balance on ${networkManager.name}`,
+        description: `L2 ${networkManager.name} total supply of DAI exceeds and violates balance at L1 ${networkManager.name} Escrow, at DAI contract address: ${L2_DAI}`,
+        alertId: `${networkManager.name}-BAL-1`,
+        severity: FindingSeverity.Critical,
+        type: FindingType.Exploit,
+        protocol: "MakerDao",
+        metadata: {
+          escrow,
+          name,
+          l1Balance: l1Balance.toString(),
+          l2TotalSupply: l2Supply.toString(),
+        },
+      })
+    );
+  }
     
     
 
@@ -94,7 +98,15 @@ export function provideHandleTransaction(
 
 }
 
-export default provideHandleTransaction(ERC20_TRANSFER_EVENT,networkManager,l1BalanceFetcher,l2SupplyFetcher);
+export default {   handleTransaction:provideHandleTransaction(
+  ERC20_TRANSFER_EVENT,
+  networkManager,
+  l1BalanceFetcher,
+  l2SupplyFetcher
+),
+
+initialize: provideInitialize(getEthersProvider())
+}
    
 
 

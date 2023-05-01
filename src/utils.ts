@@ -34,15 +34,12 @@ export const TOTAL_SUPPLY_ABI = ["function totalSupply() external view returns (
 
 
 
-export const createFinding= (
-    
+export const createFinding = (
     name: string,
-    amount: BigNumber,
-    from: string,
-    to: string,
-    escrow: string,
-
-) : Finding=> {
+    address:string,
+    l1Balance:number,
+    l2Supply:number
+    ): Finding => {
     return Finding.fromObject({
         name: "DAI total supply exceeds balance ",
         description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
@@ -51,16 +48,13 @@ export const createFinding= (
         type: FindingType.Info,
         protocol: "MakerDao",
         metadata: {
-           
-            from: from,
-            to: to,
-            escrow: escrow,
-            amount: amount.toString(),
+            address: address,
+            l1Balance: l1Balance.toString(),
+            l2Supply: l2Supply.toString(),
         },
     });
-
-
 }
+
 
 
 

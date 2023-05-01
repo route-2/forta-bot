@@ -22,7 +22,7 @@ interface NetworkData {
     }
 
     export default class NetworkManager implements NetworkData {
- public name: string;
+     public name: string;
     public escrowAddress: string;
     networkMap: Record<number, NetworkData>;
 
