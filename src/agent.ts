@@ -49,32 +49,31 @@ export function provideHandleTransaction(
 ): HandleTransaction {
   return async (txEvent: TransactionEvent): Promise<Finding[]> => {
     const findings: Finding[] = [];
+    console.log(txEvent)
     const txLogs = txEvent.filterLog(transferEvent, L1_DAI);
-    const l2Supply: BigNumber = await l2SupplyFetcher.getL2Supply(txEvent.blockNumber);
-    const l1Balance: BigNumber = await l1BalanceFetcher.getEscrowBalance(txEvent.blockNumber);
+
+    for(const tXevent of txLogs){
+      const from = tXevent.args.from;
+      const to = tXevent.args.to;
+      const amount = tXevent.args.value;
+      const escrow = networkManager.escrowAddress
+      const name = networkManager.name
+      const l2Supply: BigNumber = await l2SupplyFetcher.getL2Supply(txEvent.blockNumber);
+      const l1Balance: BigNumber = await l1BalanceFetcher.getEscrowBalance(txEvent.blockNumber);
+      if(l1Balance< l2Supply){
+
+        findings.push(createFinding(name,escrow,Number(l1Balance),Number(l2Supply)))
+
+      }
+      
+
+    }
+   
     const escrow = networkManager.escrowAddress
     const name = networkManager.name
     if (!txLogs) return findings;
 
-  if(l1Balance< l2Supply)
-  {
-    findings.push(
-      Finding.fromObject({
-        name: `DAI total supply exceeds balance on ${networkManager.name}`,
-        description: `L2 ${networkManager.name} total supply of DAI exceeds and violates balance at L1 ${networkManager.name} Escrow, at DAI contract address: ${L2_DAI}`,
-        alertId: `${networkManager.name}-BAL-1`,
-        severity: FindingSeverity.Critical,
-        type: FindingType.Exploit,
-        protocol: "MakerDao",
-        metadata: {
-          escrow,
-          name,
-          l1Balance: l1Balance.toString(),
-          l2TotalSupply: l2Supply.toString(),
-        },
-      })
-    );
-  }
+ 
     
     
 

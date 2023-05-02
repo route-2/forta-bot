@@ -9,7 +9,7 @@ import {
 import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
 import {createAddress} from "forta-agent-tools"
 import { BigNumber,utils } from "ethers";
-import { L1_DAI, L2_DAI, ERC20_TRANSFER_EVENT, TOTAL_SUPPLY_ABI, TOTALSUPPLY_IFACE } from "./utils";
+import { L1_DAI, L2_DAI, ERC20_TRANSFER_EVENT, TOTAL_SUPPLY_ABI, TOTALSUPPLY_IFACE,createFinding } from "./utils";
 import NetworkData from "./network";
 import L1BalanceFetcher from "./l1balance.fetcher";
 import L2SupplyFetcher from "./l2supply.fetcher";
@@ -27,34 +27,14 @@ const MOCK_DAI_ADDRESS = L1_DAI;
 
 
 
-const createFinding = (
-  name: string,
-  amount: BigNumber,
-  from: string,
-  to: string,
-  escrow: string
-): Finding => {
-  return Finding.fromObject({
-    name: "DAI total supply exceeds balance ",
-    description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
-    alertId: `${name}-Transfer`,
-    severity: FindingSeverity.Info,
-    type: FindingType.Info,
-    protocol: "MakerDao",
-    metadata: {
-      from: from,
-      to: to,
-      escrow: escrow,
-      amount: amount.toString(),
-    },
-  });
-}
+
 const mockTotalSupplyFetcher = {
   getL2Supply: jest.fn(),
 };
 const mockBalanceFetcher = {
   getEscrowBalance: jest.fn(),
 };
+
 
 
 
@@ -121,71 +101,113 @@ describe("MakerDao Dai L1 Escrow Balance and L2 Total Supply Check", () => {
   }
   );
 
-  it("returns a total supply exceed balance", async() => {
 
-    const mockTotalSupplyFetcher = {
-      getL2Supply: jest.fn().mockResolvedValue(ethers.BigNumber.from(1000)),
-    };
-    const mockBalanceFetcher = {
-      getEscrowBalance: jest.fn().mockResolvedValue(ethers.BigNumber.from(100)),
-    };
-    const mockNetworkManager = {
-      name: "Optimism",
-      escrowAddress: createAddress("0x222"),
-
-    };
-    const mockCreateFinding = (
-      name: string,
-      address:string,
-      l1Balance:number,
-      l2Supply:number
-
-    )  : Finding => {
-      return Finding.fromObject({
-          name: "DAI total supply exceeds balance ",
-          description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
-          alertId: `${name}-Transfer`,
-          severity: FindingSeverity.Info,
-          type: FindingType.Info,
-          protocol: "MakerDao",
-          metadata: {
-              address: address,
-              l1Balance: l1Balance.toString(),
-              l2Supply: l2Supply.toString(),
-          },
-        
-          
-
-      })
+  it("should return  findings if L2 total supply  exceed L1 balance", async () => {
+    type DAI_DETAILS_TYPE = {
+      L1Address: string;
     }
-    let block = 11291046;
+    const DAI_DETAILS: DAI_DETAILS_TYPE[] = [
+      {
+        L1Address: L1_DAI,
+      }]
     let provider = getEthersProvider();
-    const MOCK_FROM_ADDRESS = createAddress("0x0001a");
-const MOCK_TO_ADDRESS = mockNetworkManager.escrowAddress;
-const MOCK_L2_DAI_ADDRESS = L2_DAI;
+    let block = await provider.getBlockNumber();
+    let ERC_20_IFACE= new Interface([ERC20_TRANSFER_EVENT])
 
-const MOCK_AMOUNT = ethers.BigNumber.from(1000);
+    const log:{
+     
+      data: string,
+      topics: string[]
+    } = ERC_20_IFACE.encodeEventLog(
+      ERC_20_IFACE.getEvent("Transfer"),[
+        createAddress("0x111"),
+        createAddress("0x222"),
+        utils.parseEther("1000")
 
-const log = TRANSFER_EVENT_INTERFACE.encodeEventLog(
-  ERC20_TRANSFER_EVENT,
-  [MOCK_FROM_ADDRESS, MOCK_TO_ADDRESS, MOCK_AMOUNT]
-);
+      ]
+    )
 
-txEvent = new TestTransactionEvent()
-.addEventLog(MOCK_DAI_ADDRESS, log.data)
-.setBlock(block);
-const l2Block: number = await provider.getBlockNumber();
-const tokenContract = new Contract(MOCK_L2_DAI_ADDRESS,TOTAL_SUPPLY_ABI ,provider);
-const l2Supply = await tokenContract.totalSupply({ blockTag: l2Block - 1 });
-expect(findings).toStrictEqual([
-  createFinding(
-    mockNetworkManager.name,
-    l2Supply,
-    MOCK_FROM_ADDRESS,
-    MOCK_TO_ADDRESS,
-    MOCK_L2_DAI_ADDRESS,
-  ),
-]);
+
+    let txEvent = new TestTransactionEvent()
+    .addEventLog(ethers.utils.getAddress(L1_DAI), log.data,log.topics)
+    .setBlock(block);
+    findings = await handleTransaction(txEvent);
+
+    const l2Block: number = await provider.getBlockNumber();
+
+    const tokenContract = new Contract(L2_DAI, TOTALSUPPLY_IFACE, provider);
+    const balanceOf = await tokenContract.totalSupply({ blockTag: l2Block - 1 });
+
+    const l2Supply = balanceOf.toNumber();  
+
+    expect(findings).toEqual([createFinding(mockNetworkManager.name, mockNetworkManager.escrowAddress, 0, 1000)]);
+
+
+  })
+
+
+
+
+  
+
+const TEST_CASES: [number, number, number, number][] = [
+  // block, timestamp, escrow balance, L2 totalSupply
+  [1, 2, 3, 4],
+  [123, 12, 1, 2],
+  [444, 44, 4, 4],
+  [111, 11, 11, 1],
+  [222, 1000, 99, 66],
+];
+
+
+TEST_CASES.forEach(
+  ([block, timestamp, escrowBalance, l2Supply]) => {
+    it(`returns a finding if L2 total supply exceeds L1 balance at block ${block}`, async () => {
+      const mockTotalSupplyFetcher = {
+        getL2Supply: jest.fn().mockResolvedValue(ethers.BigNumber.from(l2Supply)),
+      };
+      const mockBalanceFetcher = {
+        getEscrowBalance: jest.fn().mockResolvedValue(ethers.BigNumber.from(escrowBalance)),
+      };
+      const mockNetworkManager = {
+        name: "Optimism",
+        escrowAddress: createAddress("0x222"),
+  
+      };
+      
+      const mockCreateFinding = (
+        name: string,
+        address:string,
+        l1Balance:number,
+        l2Supply:number
+  
+      )  : Finding => {
+        return Finding.fromObject({
+            name: "DAI total supply exceeds balance ",
+            description: `L2 ${name} total supply of DAI exceeds and violates balance at L1 ${name} Escrow`,
+            alertId: `${name}-Transfer`,
+            severity: FindingSeverity.Info,
+            type: FindingType.Info,
+            protocol: "MakerDao",
+            metadata: {
+                address: address,
+                l1Balance: l1Balance.toString(),
+                l2Supply: l2Supply.toString(),
+            },
+          
+            
+  
+        })
+      }
+     
+      const findings = await handleTransaction(txEvent);
+      expect(findings).toEqual([mockCreateFinding(mockNetworkManager.name, mockNetworkManager.escrowAddress, escrowBalance, l2Supply)]);
+
+    
+
+
+
+
 }
 );
 
@@ -200,3 +222,7 @@ expect(findings).toStrictEqual([
    
 
 });
+
+  }
+  );
+
